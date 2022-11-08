@@ -22,14 +22,15 @@ async function main() {
     .option('dry-run', { type: 'boolean', default: false, desc: 'do not actually deploy the stack. just update the snapshot (not recommended!)' })
     .option('update-on-failed', { type: 'boolean', default: false, desc: 'rerun integration tests and update snapshots for failed tests.' })
     .option('force', { type: 'boolean', default: false, desc: 'Rerun all integration tests even if tests are passing' })
-    .option('parallel-regions', { type: 'array', desc: 'Tests are run in parallel across these regions. To prevent tests from running in parallel, provide only a single region', nargs: 1, default: [] })
+    .option('parallel-regions', { type: 'array', desc: 'Tests are run in parallel across these regions. To prevent tests from running in parallel, provide only a single region', default: [] })
     .options('directory', { type: 'string', default: 'test', desc: 'starting directory to discover integration tests. Tests will be discovered recursively from this directory' })
-    .options('profiles', { type: 'array', desc: 'list of AWS profiles to use. Tests will be run in parallel across each profile+regions', nargs: 1, default: [] })
+    .options('profiles', { type: 'array', desc: 'list of AWS profiles to use. Tests will be run in parallel across each profile+regions', default: [] })
     .options('max-workers', { type: 'number', desc: 'The max number of workerpool workers to use when running integration tests in parallel', default: 16 })
     .options('exclude', { type: 'boolean', desc: 'Run all tests in the directory, except the specified TESTs', default: false })
     .options('from-file', { type: 'string', desc: 'Read TEST names from a file (one TEST per line)' })
     .option('inspect-failures', { type: 'boolean', desc: 'Keep the integ test cloud assembly if a failure occurs for inspection', default: false })
     .option('disable-update-workflow', { type: 'boolean', default: false, desc: 'If this is "true" then the stack update workflow will be disabled' })
+    .option('app', { type: 'string', default: undefined, desc: 'The custom CLI command that will be used to run the test files. You can include {filePath} to specify where in the command the test file path should be inserted. Example: --app="python3.8 {filePath}".' })
     .strict()
     .argv;
 
@@ -76,6 +77,7 @@ async function main() {
     failedSnapshots = await runSnapshotTests(pool, testsFromArgs, {
       retain: argv['inspect-failures'],
       verbose: Boolean(argv.verbose),
+      appCommand: argv.app,
     });
     for (const failure of failedSnapshots) {
       destructiveChanges.push(...failure.destructiveChanges ?? []);
@@ -99,6 +101,7 @@ async function main() {
         dryRun: argv['dry-run'],
         verbosity: argv.verbose,
         updateWorkflow: !argv['disable-update-workflow'],
+        appCommand: argv.app,
       });
       testsSucceeded = success;
 
